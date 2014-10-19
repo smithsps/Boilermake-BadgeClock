@@ -18,18 +18,9 @@
 #include <SPI.h>
 #include <EEPROM.h>
 
-void networkRead(void);
-
-void setLEDS(word);
-void handlePayload(struct payload *);
-
-void displayDemo();
-
 // Maps commands to integers
-const byte PING   = 0; // Ping
-const byte LED    = 1; // LED pattern
-const byte MESS   = 2; // Message
-const byte DEMO   = 3; // Demo Pattern
+const byte PINGTIME = 0;
+const byte REQUESTTIME    = 1;
 
 // Global Variables
 int SROEPin = 3; // using digital pin 3 for SR !OE
@@ -43,10 +34,10 @@ uint16_t this_node_address = (EEPROM.read(0) << 8) | EEPROM.read(1); // Radio ad
 unsigned long startTime = 0;
 unsigned long synced_time = 0;
 
-struct payload{ // Payload structure
+struct message{
   byte command;
-  byte led_pattern;
-  char message[30];
+  uint16_t from;
+  unsigned long time;
 };
 
 // This runs once on boot
@@ -63,7 +54,7 @@ void setup() {
   radio.setDataRate(RF24_1MBPS); // 1Mbps transfer rate
   radio.setCRCLength(RF24_CRC_16); // 16-bit CRC
   radio.setChannel(80); // Channel center frequency = 2.4005 GHz + (Channel# * 1 MHz)
-  radio.setRetries(200, 5); // set the delay and number of retries upon failed transmit
+  radio.setRetries(200, 1); // set the delay and number of retries upon failed transmit
   radio.openReadingPipe(0, this_node_address); // Open this address
   radio.startListening(); // Start listening on opened address
 
@@ -74,7 +65,7 @@ void setup() {
   digitalWrite(SRLatchPin, LOW);
 
 
-  // make the pretty LEDs happen
+  // make the pretty LEDs happenT727262578
   displayDemo();
 
   startTime = millis();
@@ -87,12 +78,19 @@ void setup() {
 void loop() {
   if (Serial && !terminalConnect) { 
     terminalConnect = true;
-    sync_time_serial();
+    if (synced_time == 0) {
+      sync_time_serial();
+    }  
   } else if (!Serial && terminalConnect) {
     terminalConnect = false;
   }
   
-  
+  //if (synced_time == 0) {
+  //  radio_time_request(0x00a9);
+ //   delay(5000);  
+ // }
+
+  //radio_listen();
   displayTime();
 }
 
@@ -110,7 +108,7 @@ void displayTime() {
   delay(1000);
   if (minute % 5 == 0 && second == 0) {
     for (int i = 0; i < 16; i++) {
-      setLEDS(ledNum((i + 9 + minute) % 16 + 1));
+      setLEDS(ledNum((i + toLED16(9 + minute)) % 16 + 1));
       delay((int) 1000/16);
     }
   } 
@@ -168,6 +166,62 @@ void sync_time_serial() {
     if ((millis() - sync_start) > MAX_SERIAL_SYNC_WAIT) {
       Serial.println("Abandoning Serial Time Sync");
       return;
+    }
+  }
+}
+
+
+void radio_time_request(uint16_t to) {
+  struct message * new_message = (struct message *) malloc(sizeof(struct message));
+  
+  new_message->command = 0;
+  new_message->from = to;
+  new_message->time = 0;
+
+  radio.stopListening();
+  radio.openWritingPipe(to);
+  radio.write(new_message, sizeof(new_message));
+  radio.startListening();
+  Serial.print("WE Time Pinged : ");
+  Serial.println(to);
+}
+
+void radio_time_send(uint16_t to) {
+  unsigned long time = millis() - startTime + synced_time;
+  struct message * new_message = (struct message *) malloc(sizeof(struct message));
+  
+  new_message->command = 1;
+  new_message->from = this_node_address;
+  new_message->time = time;
+
+  Serial.print("WE FULFILLED TIMEREQUEST : ");
+  Serial.println(time);
+
+  radio.stopListening();
+  radio.openWritingPipe(to);
+  radio.write(new_message, 7);
+  radio.startListening();
+}
+
+void radio_listen() {
+  while (radio.available()) {
+    struct message * current_message = (struct message *) malloc(sizeof(struct message));
+
+    radio.read( current_message,  4 + 2 + 1);
+    if (current_message->command == 0) {
+        Serial.print("Received Time PING : ");
+        Serial.println(current_message->from);
+        //Recieved time Ping, send back time! :D        
+        radio_time_send(current_message->from);
+    }
+    if (current_message->command == 1) {
+        Serial.print("Received Time UPDATE : ");
+        Serial.print(current_message->from);
+        Serial.print(" : ");
+        Serial.println(current_message->time);
+        //Uh Logic for accepting new time.
+        synced_time = current_message->time;
+        startTime = 0;
     }
   }
 }
