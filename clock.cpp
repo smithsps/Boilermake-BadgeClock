@@ -99,17 +99,17 @@ void displayTime() {
   unsigned long time = millis() - startTime;  
   int hour = (time / 3600000) % 12;
   int minute = (time / 60000) % 60;
-  int secound = (time / 1000) % 60;
+  int second = (time / 1000) % 60;
   
-  if (secound % 2) {  
+  if (second % 2) {  
     setLEDS(ledNum(toLED16(hour)) | ledNum(toLED16(minute / 5)));
   } else {
     setLEDS(ledNum(toLED16(hour)));
   }
   delay(1000);
-  if (minute % 5 == 0 && secounds < 6) {
+  if (minute % 5 == 0 && second < 1) {
     for (int i = 0; i < 16; i++) {
-      setLEDS(ledNum(toLED16(i)));
+      setLEDS(ledNum(i));
       delay((int) 1000/16);
     }
   } 
