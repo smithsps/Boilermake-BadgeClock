@@ -99,8 +99,8 @@ digitalWrite(SROEPin, HIGH);
 
 void displayTime() {
   int hour = 8;
-  int minute = 9;
-  int minCount = 1;
+  int minute = 8;
+  int minCount = 0;
   setValue(ledNum(minute + 1) | ledNum(hour + 1));
   while (1) {
       while (minCount < 12) {
