@@ -41,6 +41,7 @@ RF24 radio(9,10); // Setup nRF24L01 on SPI bus using pins 9 & 10 as CE & CSN, re
 
 uint16_t this_node_address = (EEPROM.read(0) << 8) | EEPROM.read(1); // Radio address for this node
 unsigned long startTime = 0;
+unsigned long synced_time = 0;
 
 struct payload{ // Payload structure
   byte command;
@@ -96,7 +97,7 @@ void loop() {
 }
 
 void displayTime() {
-  unsigned long time = millis() - startTime;  
+  unsigned long time = millis() - startTime + synced_time;  
   int hour = (time / 3600000) % 12;
   int minute = (time / 60000) % 60;
   int second = (time / 1000) % 60;
@@ -109,7 +110,7 @@ void displayTime() {
   delay(1000);
   if (minute % 5 == 0 && second == 0) {
     for (int i = 0; i < 16; i++) {
-      setLEDS(ledNum((i + 9 + hour) % 16 + 1));
+      setLEDS(ledNum((i + 9 + minute) % 16 + 1));
       delay((int) 1000/16);
     }
   } 
@@ -120,7 +121,9 @@ void displayTime() {
   Serial.print(" : ");
   Serial.print(hour);
   Serial.print(" : ");
-  Serial.println(minute);
+  Serial.print(minute);
+  Serial.print(" : ");
+  Serial.println(second);
 }
 
 
@@ -138,9 +141,39 @@ int toLED16(int i) {
 }
 
 //Wait a bit and see if we get serial time sync
+//Wait a bit and see if we get serial time sync
 void sync_time_serial() {
-  
+  #define MAX_SERIAL_SYNC_WAIT 10000
+  #define TIME_HEADER 'T'
+  #define TIME_LEN 11
+  unsigned long sync_start = millis();
+  Serial.println("Start Time Sync");  
+
+  String strTime = ""; 
+  unsigned long newtime = 0;
+  while ( true){ //11 is length of 
+     char c = Serial.read();
+    if (c > 0) 
+      Serial.print((int)c);
+    delay(100);
+    if (c == TIME_HEADER) {
+      for (int i = 0; i < TIME_LEN; i++) {
+        strTime += (char) Serial.read();
+      }
+      synced_time = strtoul(strTime.c_str(), NULL, 10);
+      Serial.print("Successfully synced time. :");
+      Serial.println(strTime);
+      
+      return;
+    }
+    
+    if ((millis() - sync_start) > MAX_SERIAL_SYNC_WAIT) {
+      Serial.println("Abandoning Serial Time Sync");
+      return;
+    }
+  }
 }
+
 
 /*
 // Display LED pattern
