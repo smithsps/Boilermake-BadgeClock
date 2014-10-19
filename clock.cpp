@@ -140,21 +140,19 @@ int toLED16(int i) {
   return ret % 16;
 }
 
-//Wait a bit and see if we get serial time sync
+
 //Wait a bit and see if we get serial time sync
 void sync_time_serial() {
   #define MAX_SERIAL_SYNC_WAIT 10000
   #define TIME_HEADER 'T'
-  #define TIME_LEN 11
+  #define TIME_LEN 9
   unsigned long sync_start = millis();
   Serial.println("Start Time Sync");  
 
   String strTime = ""; 
   unsigned long newtime = 0;
   while ( true){ //11 is length of 
-     char c = Serial.read();
-    if (c > 0) 
-      Serial.print((int)c);
+    char c = Serial.read();
     delay(100);
     if (c == TIME_HEADER) {
       for (int i = 0; i < TIME_LEN; i++) {
@@ -163,7 +161,7 @@ void sync_time_serial() {
       synced_time = strtoul(strTime.c_str(), NULL, 10);
       Serial.print("Successfully synced time. :");
       Serial.println(strTime);
-      
+      startTime = 0;
       return;
     }
     
