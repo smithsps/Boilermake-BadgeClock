@@ -100,12 +100,36 @@ void loop() {
   } else if (!Serial && terminalConnect) {
     terminalConnect = false;
   }
-  digitalWrite(SROEPin, LOW);
-  for(int i = 1; i < 17; i++) {
-    
-    ledDisplay(i);
+digitalWrite(SROEPin, LOW);
+  displayTime();
+digitalWrite(SROEPin, HIGH);
+}
+
+void displayTime() {
+  int hour = 8;
+  int minute = 8;
+  int minCount = 0;
+  setValue(ledNum(minute + 1) | ledNum(hour + 1));
+  while (1) {
+      while (minCount < 12) {
+        delay(300000);
+        if (minute + 1 == 3 || minute + 1 == 5 || minute + 1 == 11 || minute + 1 == 13) {
+          minute += 2;
+        } else {
+          minute = (minute + 1) % 16;
+        }
+        minCount++;
+        setValue(ledNum(minute + 1) | ledNum(hour + 1));
+      }
+      if (hour + 1 == 3 || hour + 1 == 5 || hour + 1 == 11 || hour + 1 == 13) {
+        hour += 2 ;
+      } else {
+        hour = (hour + 1) % 16;
+      }
+      minCount = 0;
+      
+      
   }
-  digitalWrite(SROEPin, HIGH);
 }
 
 
@@ -204,7 +228,7 @@ word ledNum(int i) {
 
 void ledDisplay(int i) {
   
-  setValue(ledNum(i) | ledNum((i + 4)%16) | ledNum((i + 8)%16));
+  setValue(ledNum(i));
   delay(62);
   
 }
