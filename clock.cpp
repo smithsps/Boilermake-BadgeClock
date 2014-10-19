@@ -9,9 +9,6 @@
 #define MAX_TERMINAL_LINE_LEN 40
 #define MAX_TERMINAL_WORDS     7
 
-#define TIME_HOUR             60*60*1000
-#define TIME_MINUTE           60*1000
-
 // 14 is strlen("send FFFF -m ")
 // the max message length able to be sent from the terminal is
 // total terminal line length MINUS the rest of the message
@@ -100,57 +97,44 @@ void loop() {
 
 void displayTime() {
   unsigned long time = millis() - startTime;  
-  int hour = (time / TIME_HOUR) % 12;
-  int minute = (time / TIME_MINUTE) % 60;
-
-  setLEDS(ledNum(toLED16(minute)) | ledNum(toLED16(hour)));
+  int hour = (time / 3600000) % 12;
+  int minute = (time / 60000) % 60;
+  int secound = (time / 1000) % 60;
+  
+  if (secound % 2) {  
+    setLEDS(ledNum(toLED16(hour)) | ledNum(toLED16(minute / 5)));
+  } else {
+    setLEDS(ledNum(toLED16(hour)));
+  }
   delay(1000);
+  if (minute % 5 == 0 && secounds < 6) {
+    for (int i = 0; i < 16; i++) {
+      setLEDS(ledNum(toLED16(i)));
+      delay((int) 1000/16);
+    }
+  } 
 
-  Serial.println(millis());
-  /*int hour = 8;
-  int minute = 8;
-  int minCount = 0;
-  setLEDS(ledNum(minute + 1) | ledNum(hour + 1));
-    
-
-  while (1) {
-      while (minCount < 12) {
-        int minuteBlink = 0;
-        while (minuteBlink < 3000) {
-          setLEDS(ledNum(hour + 1));
-          delay(1000);
-          setLEDS(ledNum(minute + 1) | ledNum(hour + 1));
-          Serial.println(millis() - startTime);
-          delay(1000);
-          minuteBlink += 20;
-        }
-        if (minute + 1 == 3 || minute + 1 == 5 || minute + 1 == 11 || minute + 1 == 13) {
-          minute += 2;
-        } else {
-          minute = (minute + 1) % 16;
-        }
-        minCount++;
-        setLEDS(ledNum(minute + 1) | ledNum(hour + 1));
-      }
-      if (hour + 1 == 3 || hour + 1 == 5 || hour + 1 == 11 || hour + 1 == 13) {
-        hour += 2 ;
-      } else {
-        hour = (hour + 1) % 16;
-
-      }
-      minCount = 0;
-  }*/
+  Serial.print(millis());
+  Serial.print(" : ");
+  Serial.print(time);
+  Serial.print(" : ");
+  Serial.print(hour);
+  Serial.print(" : ");
+  Serial.println(minute);
 }
+
 
 //12 hour clock, but 16 LEDs
 int toLED16(int i) {
-  int ret = i + 9; //Top of clock is 9 offset
+  int ret = i; 
+
   //We have to not use 4 of the 16 for a 12 clock
-  if (i >= 3) ret += 1;
-  if (i >= 5) ret += 1;
-  if (i >= 11) ret += 1;
-  if (i >= 13) ret += 1;
-  return ret;
+  if (ret >= 3) ret += 1;
+  if (ret >= 5) ret += 1;
+  if (ret >= 11) ret += 1;
+  if (ret >= 13) ret += 1;
+  ret += 9;  
+  return ret % 16;
 }
 
 void sync_time_serial() {
@@ -204,14 +188,6 @@ word ledNum(int i) {
 
   return shit[i];
 }
-
-void ledDisplay(int i) {
-  
-  setLEDS(ledNum(i));
-  delay(62);
-  
-}
-
 
 // LED display demo
 void displayDemo() {
