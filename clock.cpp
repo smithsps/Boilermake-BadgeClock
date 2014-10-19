@@ -107,9 +107,9 @@ void displayTime() {
     setLEDS(ledNum(toLED16(hour)));
   }
   delay(1000);
-  if (minute % 5 == 0 && second < 1) {
+  if (minute % 5 == 0 && second == 0) {
     for (int i = 0; i < 16; i++) {
-      setLEDS(ledNum(i));
+      setLEDS(ledNum((i + 9 + hour) % 16 + 1));
       delay((int) 1000/16);
     }
   } 
@@ -137,6 +137,7 @@ int toLED16(int i) {
   return ret % 16;
 }
 
+//Wait a bit and see if we get serial time sync
 void sync_time_serial() {
   
 }
