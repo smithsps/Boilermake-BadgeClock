@@ -1,18 +1,10 @@
-/* vim: set ts=2 sw=2 sts=2 et! : */
-//
-// BoilerMake Fall 2014 Badge Code
-//
-// These boards are equivalent to an Arduino Leonardo
-// And contain an ATMega32U4 microprocessor and an nRF24L01 radio
-//
-// Lior Ben-Yehoshua (admin@Lior9999.com)
-// Viraj Sinha       (virajosinha@gmail.com)
-// Scott Opell       (me@scottopell.com)
-//
-// 10/15/2014
-//
-// Happy Hacking!
-//
+/*
+ * This badge clock was coded by none other than Simon Smith and Cameron Kachur.
+ * It does clock things such as tell time and.........................
+ * You wish you could make a clock badgerooni like this.
+ * Happy clocking and turn down for only dead batteries.
+ * Boilermake 2014 - All clock no sleep
+ */
 
 #define MAX_TERMINAL_LINE_LEN 40
 #define MAX_TERMINAL_WORDS     7
@@ -107,12 +99,19 @@ digitalWrite(SROEPin, HIGH);
 
 void displayTime() {
   int hour = 8;
-  int minute = 8;
-  int minCount = 0;
+  int minute = 9;
+  int minCount = 1;
   setValue(ledNum(minute + 1) | ledNum(hour + 1));
   while (1) {
       while (minCount < 12) {
-        delay(300000);
+        int minuteBlink = 0;
+        while (minuteBlink < 3000) {
+          setValue(ledNum(hour + 1));
+          delay(1000);
+          setValue(ledNum(minute + 1) | ledNum(hour + 1));
+          delay(1000);
+          minuteBlink += 20;
+        }
         if (minute + 1 == 3 || minute + 1 == 5 || minute + 1 == 11 || minute + 1 == 13) {
           minute += 2;
         } else {
@@ -127,8 +126,6 @@ void displayTime() {
         hour = (hour + 1) % 16;
       }
       minCount = 0;
-      
-      
   }
 }
 
@@ -255,4 +252,3 @@ void setValue(word value) {
   digitalWrite(SRLatchPin, HIGH);
   digitalWrite(SRLatchPin, LOW);
 }
-
