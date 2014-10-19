@@ -9,6 +9,9 @@
 #define MAX_TERMINAL_LINE_LEN 40
 #define MAX_TERMINAL_WORDS     7
 
+#define TIME_HOUR             60*60*1000
+#define TIME_MINUTE           60*1000
+
 // 14 is strlen("send FFFF -m ")
 // the max message length able to be sent from the terminal is
 // total terminal line length MINUS the rest of the message
@@ -18,18 +21,11 @@
 #include <SPI.h>
 #include <EEPROM.h>
 
-void welcomeMessage(void);
-void printHelpText(void);
-void printPrompt(void);
-
 void networkRead(void);
-void serialRead(void);
-void handleSerialData(char[], byte);
 
-void setValue(word);
+void setLEDS(word);
 void handlePayload(struct payload *);
 
-void ledDisplay(byte);
 void displayDemo();
 
 // Maps commands to integers
@@ -47,6 +43,7 @@ boolean terminalConnect = false; // indicates if the terminal has connected to t
 RF24 radio(9,10); // Setup nRF24L01 on SPI bus using pins 9 & 10 as CE & CSN, respectively
 
 uint16_t this_node_address = (EEPROM.read(0) << 8) | EEPROM.read(1); // Radio address for this node
+unsigned long startTime = 0;
 
 struct payload{ // Payload structure
   byte command;
@@ -81,34 +78,49 @@ void setup() {
 
   // make the pretty LEDs happen
   displayDemo();
+
+  startTime = millis();
+  // 
+  digitalWrite(SROEPin, LOW);
 }
 
 
 // This loops forever
 void loop() {
-  // Displays welcome message if serial terminal connected after program setup
   if (Serial && !terminalConnect) { 
     terminalConnect = true;
+    sync_time_serial();
   } else if (!Serial && terminalConnect) {
     terminalConnect = false;
   }
-digitalWrite(SROEPin, LOW);
+  
+  
   displayTime();
-digitalWrite(SROEPin, HIGH);
 }
 
 void displayTime() {
-  int hour = 8;
+  unsigned long time = millis() - startTime;  
+  int hour = (time / TIME_HOUR) % 12;
+  int minute = (time / TIME_MINUTE) % 60;
+
+  setLEDS(ledNum(toLED16(minute)) | ledNum(toLED16(hour)));
+  delay(1000);
+
+  Serial.println(millis());
+  /*int hour = 8;
   int minute = 8;
   int minCount = 0;
-  setValue(ledNum(minute + 1) | ledNum(hour + 1));
+  setLEDS(ledNum(minute + 1) | ledNum(hour + 1));
+    
+
   while (1) {
       while (minCount < 12) {
         int minuteBlink = 0;
         while (minuteBlink < 3000) {
-          setValue(ledNum(hour + 1));
+          setLEDS(ledNum(hour + 1));
           delay(1000);
-          setValue(ledNum(minute + 1) | ledNum(hour + 1));
+          setLEDS(ledNum(minute + 1) | ledNum(hour + 1));
+          Serial.println(millis() - startTime);
           delay(1000);
           minuteBlink += 20;
         }
@@ -118,61 +130,31 @@ void displayTime() {
           minute = (minute + 1) % 16;
         }
         minCount++;
-        setValue(ledNum(minute + 1) | ledNum(hour + 1));
+        setLEDS(ledNum(minute + 1) | ledNum(hour + 1));
       }
       if (hour + 1 == 3 || hour + 1 == 5 || hour + 1 == 11 || hour + 1 == 13) {
         hour += 2 ;
       } else {
         hour = (hour + 1) % 16;
+
       }
       minCount = 0;
-  }
+  }*/
 }
 
-
-// Handle reading from the radio
-void networkRead() {
-  while (radio.available()) {
-    struct payload * current_payload = (struct payload *) malloc(sizeof(struct payload));
-
-    // Fetch the payload, and see if this was the last one.
-    radio.read( current_payload, sizeof(struct payload) );
-    handlePayload(current_payload);
-  }
+//12 hour clock, but 16 LEDs
+int toLED16(int i) {
+  int ret = i + 9; //Top of clock is 9 offset
+  //We have to not use 4 of the 16 for a 12 clock
+  if (i >= 3) ret += 1;
+  if (i >= 5) ret += 1;
+  if (i >= 11) ret += 1;
+  if (i >= 13) ret += 1;
+  return ret;
 }
 
-// Grab message received by nRF for this node
-void handlePayload(struct payload * myPayload) {
-  switch(myPayload->command) {
-
-    case PING:
-      Serial.println("Someone pinged us!");
-      printPrompt();
-      break;
-
-    case LED:
-      ledDisplay(myPayload->led_pattern);
-      break;
-
-    case MESS:
-      Serial.print("Message:\r\n  ");
-      Serial.println(myPayload->message);
-      printPrompt();
-      break;
-
-    case DEMO:
-      displayDemo();
-      break;
-
-    default:
-      Serial.println(" Invalid command received.");
-      break;
-  }
-  free(myPayload); // Deallocate payload memory block
-}
-
-void printPrompt(void){
-  Serial.print("> ");
+void sync_time_serial() {
+  
 }
 
 /*
@@ -193,7 +175,7 @@ void printPrompt(void){
 shift register 1-8: AA
 shift register 9-16: BB
 
-setValue data in hex: 0xAABB
+setLEDS data in hex: 0xAABB
 where AA in binary = 0b[8][7][6][5][4][3][2][1]
       BB in binary = 0b[16][15][14][13][12][11][10][9]
 
@@ -225,7 +207,7 @@ word ledNum(int i) {
 
 void ledDisplay(int i) {
   
-  setValue(ledNum(i));
+  setLEDS(ledNum(i));
   delay(62);
   
 }
@@ -235,16 +217,16 @@ void ledDisplay(int i) {
 void displayDemo() {
   digitalWrite(SROEPin, LOW);
   for (int i = 0; i < 4; i++) {
-    setValue(0xAAAA);
+    setLEDS(0xAAAA);
     delay(125);
-    setValue(0x5555);
+    setLEDS(0x5555);
     delay(125);
   }
   digitalWrite(SROEPin, HIGH);
 }
 
 // Sends word sized value to both SRs & latches output pins
-void setValue(word value) {
+void setLEDS(word value) {
   byte Hvalue = value >> 8;
   byte Lvalue = value & 0x00FF;
   SPI.transfer(Lvalue);
