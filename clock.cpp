@@ -251,28 +251,28 @@ where AA in binary = 0b[8][7][6][5][4][3][2][1]
 
 */
 word ledNum(int i) {
-  word shit[17];
-  shit[0] = 0x0000;
+  word led[17];
+  led[0] = 0x0000;
 
-  shit[1] = 0x0100;
-  shit[2] = 0x0200;
-  shit[3] = 0x0400;
-  shit[4] = 0x0800;
-  shit[5] = 0x1000;
-  shit[6] = 0x2000;
-  shit[7] = 0x4000;
-  shit[8] = 0x8000;
+  led[1] = 0x0100;
+  led[2] = 0x0200;
+  led[3] = 0x0400;
+  led[4] = 0x0800;
+  led[5] = 0x1000;
+  led[6] = 0x2000;
+  led[7] = 0x4000;
+  led[8] = 0x8000;
 
-  shit[9] =  0x0001;
-  shit[10] = 0x0002;
-  shit[11] = 0x0004;
-  shit[12] = 0x0008;
-  shit[13] = 0x0010;
-  shit[14] = 0x0020;
-  shit[15] = 0x0040;
-  shit[16] = 0x0080;
+  led[9] =  0x0001;
+  led[10] = 0x0002;
+  led[11] = 0x0004;
+  led[12] = 0x0008;
+  led[13] = 0x0010;
+  led[14] = 0x0020;
+  led[15] = 0x0040;
+  led[16] = 0x0080;
 
-  return shit[i];
+  return led[i];
 }
 
 // LED display demo
